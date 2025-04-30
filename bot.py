@@ -1,15 +1,19 @@
+
 import telebot
 import subprocess
 from flask import Flask
 from threading import Thread
 
-TELEGRAM_BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+# ضع هنا التوكن الجديد للبوت ديالك
+TELEGRAM_BOT_TOKEN = '7471008788:AAFBBdGspKxJPYGAgITKeWt6fsNAm6ufALg'
 STREAM_URL = 'rtmps://live-api-s.facebook.com:443/rtmp/'
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
+# خزن الفيديوات حسب ID ديال المستخدم
 user_states = {}
 
+# Flask app باش يبقى السيرفر عايش
 app = Flask('')
 
 @app.route('/')
@@ -33,10 +37,12 @@ def handle_message(message):
     text = message.text
 
     if user_id in user_states and user_states[user_id]['waiting_for'] == 'stream_key':
+        # إذا كان المستخدم كيستنى Stream Key
         stream_key = text
         video_url = user_states[user_id]['video_url']
         bot.send_message(user_id, "بداية البث المباشر...")
 
+        # تشغيل الأمر ffmpeg للبث على Facebook Live
         command = [
             'ffmpeg',
             '-re',
@@ -53,14 +59,16 @@ def handle_message(message):
         except Exception as e:
             bot.send_message(user_id, f"وقع خطأ: {e}")
 
-        del user_states[user_id]
+        del user_states[user_id]  # مسح الحالة بعد البث
 
     else:
+        # إذا مازال المستخدم ما أرسل Stream Key
         user_states[user_id] = {
             'waiting_for': 'stream_key',
             'video_url': text
         }
         bot.send_message(user_id, "المرجو إرسال Stream Key ديال Facebook Live.")
         
+# بدء التشغيل
 keep_alive()
 bot.polling()
