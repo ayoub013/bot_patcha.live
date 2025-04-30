@@ -1,24 +1,23 @@
-
 import telebot
 import subprocess
 from flask import Flask
 from threading import Thread
 
-# ضع هنا التوكن الجديد للبوت ديالك
+# ======== إعدادات ========
 TELEGRAM_BOT_TOKEN = '7471008788:AAFBBdGspKxJPYGAgITKeWt6fsNAm6ufALg'
 STREAM_URL = 'rtmps://live-api-s.facebook.com:443/rtmp/'
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
-# خزن الفيديوات حسب ID ديال المستخدم
+# نحفظو الحالات ديال كل مستخدم
 user_states = {}
 
-# Flask app باش يبقى السيرفر عايش
+# ======== سيرفر صغير باش يبقى البوت خدام ========
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "البوت خدام مزيان"
+    return "✅ البوت خدام مزيان."
 
 def run():
     app.run(host='0.0.0.0', port=8080)
@@ -27,9 +26,11 @@ def keep_alive():
     server = Thread(target=run)
     server.start()
 
+# ======== التعامل مع الأوامر ========
+
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "أرسل رابط الفيديو باش نبثوه على Facebook Live.")
+    bot.reply_to(message, "👋 أهلاً! أرسل رابط الفيديو باش نبثوه على Facebook Live.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -37,12 +38,12 @@ def handle_message(message):
     text = message.text
 
     if user_id in user_states and user_states[user_id]['waiting_for'] == 'stream_key':
-        # إذا كان المستخدم كيستنى Stream Key
+        # المستخدم صيفط Stream Key
         stream_key = text
         video_url = user_states[user_id]['video_url']
-        bot.send_message(user_id, "بداية البث المباشر...")
+        bot.send_message(user_id, "🚀 كنبدأو البث المباشر...")
 
-        # تشغيل الأمر ffmpeg للبث على Facebook Live
+        # إعداد ffmpeg للبث
         command = [
             'ffmpeg',
             '-re',
@@ -55,20 +56,21 @@ def handle_message(message):
 
         try:
             subprocess.run(command)
-            bot.send_message(user_id, "تم إنهاء البث.")
+            bot.send_message(user_id, "✅ سالينا البث المباشر.")
         except Exception as e:
-            bot.send_message(user_id, f"وقع خطأ: {e}")
+            bot.send_message(user_id, f"❌ وقع خطأ: {e}")
 
-        del user_states[user_id]  # مسح الحالة بعد البث
+        # نحيد حالة المستخدم
+        del user_states[user_id]
 
     else:
-        # إذا مازال المستخدم ما أرسل Stream Key
+        # أول رسالة = رابط الفيديو
         user_states[user_id] = {
             'waiting_for': 'stream_key',
             'video_url': text
         }
-        bot.send_message(user_id, "المرجو إرسال Stream Key ديال Facebook Live.")
-        
-# بدء التشغيل
+        bot.send_message(user_id, "📥 توصلت بالرابط.\nصيفط ليا دابا Stream Key ديالك ديال Facebook.")
+
+# ======== تشغيل البوت ========
 keep_alive()
 bot.polling()
